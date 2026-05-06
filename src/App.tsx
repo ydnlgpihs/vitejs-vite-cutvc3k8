@@ -6,7 +6,7 @@ import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from 'fi
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 // ==========================================
-// 1. Firebase 設定 (請務必填入你的 Config)
+// 1. Firebase 設定 (已自動填入你的專屬資料)
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyAY5YRBVUXeRvAime0AyLD2IOgO1MRlT8c",
@@ -19,8 +19,7 @@ const firebaseConfig = {
   measurementId: "G-MR858X7DSZ"
 };
 
-const validFirebaseConfig = Object.keys(firebaseConfig).length > 0 ? firebaseConfig : {};
-const app = initializeApp(validFirebaseConfig);
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app); 
@@ -74,7 +73,6 @@ export default function App() {
   const [drawStart, setDrawStart] = useState(null);
   const [currentDraw, setCurrentDraw] = useState(null);
 
-  // 狀態管理：側邊欄 (手機版) 及上傳進度
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -88,14 +86,12 @@ export default function App() {
   const overlayRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // 監聽螢幕大小，自動開關側邊欄
   useEffect(() => {
     const handleResize = () => setIsSidebarOpen(window.innerWidth > 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Firebase Auth
   useEffect(() => {
     const initAuth = async () => {
       try { await signInAnonymously(auth); } 
@@ -106,7 +102,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Firebase DB 監聽
   useEffect(() => {
     if (!user) return;
     const projectsRef = collection(db, 'artifacts', appId, 'public', 'data', 'projects');
@@ -139,7 +134,6 @@ export default function App() {
     return () => { unsubProjects(); unsubSubcats(); unsubMarkers(); };
   }, [user, activeProjectId]);
 
-  // 自動維護子分類
   useEffect(() => {
     if (!activeProjectId || !user) return;
     const projectSubs = subcategories.filter(s => s.projectId === activeProjectId);
@@ -151,7 +145,6 @@ export default function App() {
     }
   }, [activeProjectId, subcategories, activeSubcategoryId, user]);
 
-  // 初始化 PDF.js
   useEffect(() => {
     const loadPdfJs = () => {
       if (window.pdfjsLib) { setPdfReady(true); return; }
@@ -167,12 +160,11 @@ export default function App() {
     loadPdfJs();
   }, []);
 
-  // 渲染 PDF
   useEffect(() => {
     const renderPage = async () => {
       if (!pdfDoc || !canvasRef.current || !overlayRef.current) return;
       const page = await pdfDoc.getPage(currentPage);
-      const viewport = page.getViewport({ scale: window.innerWidth < 768 ? 1.0 : 1.5 }); // 手機縮小比例
+      const viewport = page.getViewport({ scale: window.innerWidth < 768 ? 1.0 : 1.5 }); 
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       canvas.height = viewport.height;
@@ -184,18 +176,13 @@ export default function App() {
     renderPage();
   }, [pdfDoc, currentPage]);
 
-  // ==========================================
-  // 自動拉取雲端 PDF 圖紙
-  // ==========================================
   useEffect(() => {
     const loadCloudPdf = async () => {
       if (!activeSubcategoryId || !pdfReady) return;
       const currentSub = subcategories.find(s => s.id === activeSubcategoryId);
-      
-      // 如果雲端有 PDF URL，就自動下載渲染
       if (currentSub && currentSub.pdfUrl) {
         setIsUploading(true);
-        setUploadProgress(100); // 視覺提示正在載入
+        setUploadProgress(100); 
         try {
           const loadingTask = window.pdfjsLib.getDocument(currentSub.pdfUrl);
           const pdf = await loadingTask.promise;
@@ -204,28 +191,22 @@ export default function App() {
           setCurrentPage(1);
         } catch (error) {
           console.error("雲端圖紙載入失敗:", error);
-          alert("雲端圖紙載入失敗，可能檔案已被刪除。");
           setPdfDoc(null);
         } finally {
           setIsUploading(false);
           setUploadProgress(0);
         }
       } else {
-        // 如果切換到沒有圖紙的區域，清空畫面
         setPdfDoc(null);
       }
     };
     loadCloudPdf();
   }, [activeSubcategoryId, subcategories, pdfReady]);
 
-  // ==========================================
-  // 上傳 PDF 至 Firebase Storage 並綁定到區域
-  // ==========================================
   const handlePdfUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !pdfReady || !activeSubcategoryId) return;
 
-    // 1. 先在本機預覽 (極速體驗)
     const fileUrl = URL.createObjectURL(file);
     try {
       const loadingTask = window.pdfjsLib.getDocument(fileUrl);
@@ -235,7 +216,6 @@ export default function App() {
       setCurrentPage(1);
     } catch (error) { console.error("預覽載入失敗:", error); }
 
-    // 2. 上傳至 Firebase Storage
     setIsUploading(true);
     const storageRef = ref(storage, `blueprints/${activeSubcategoryId}_${Date.now()}.pdf`);
     const uploadTask = uploadBytesResumable(storageRef, file);
@@ -251,7 +231,6 @@ export default function App() {
         setIsUploading(false);
       }, 
       async () => {
-        // 3. 上傳成功，將 URL 寫入 Firestore 的子分類中
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'subcategories', activeSubcategoryId), {
           ...subcategories.find(s => s.id === activeSubcategoryId),
@@ -259,12 +238,10 @@ export default function App() {
         });
         setIsUploading(false);
         setUploadProgress(0);
-        alert("圖紙已成功同步至雲端，其他同事進入此區域會自動看見。");
       }
     );
   };
 
-  // --- CRUD 操作 ---
   const confirmAddProject = async () => {
     if (projectModal.name.trim() && user) {
       const newProjectId = Date.now().toString();
@@ -286,7 +263,6 @@ export default function App() {
     setSubModal({ isOpen: false, name: '' });
   };
 
-  // --- 畫布互動 ---
   const handleOverlayMouseDown = (e) => {
     if (tool === 'view' || !activeSubcategoryId) return;
     const rect = overlayRef.current.getBoundingClientRect();
@@ -332,6 +308,13 @@ export default function App() {
     setTool('view');
   };
 
+  const confirmDeleteMarker = async () => {
+    if (confirmModal.markerId && user) {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'markers', confirmModal.markerId));
+    }
+    setConfirmModal({ isOpen: false, markerId: null });
+  };
+
   const currentProjectSubs = subcategories.filter(s => s.projectId === activeProjectId);
   const currentProjectMarkers = (markers[activeProjectId] || []).filter(m => m.page === currentPage && m.subcategoryId === activeSubcategoryId);
 
@@ -340,8 +323,6 @@ export default function App() {
   return (
     <div className="flex h-screen w-full bg-gray-100 font-sans text-gray-800 overflow-hidden relative">
       
-      {/* ================= 側邊欄 (手機版自動隱藏) ================= */}
-      {/* 遮罩 (手機版用) */}
       {isSidebarOpen && window.innerWidth <= 768 && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-20" onClick={() => setIsSidebarOpen(false)} />
       )}
@@ -350,7 +331,6 @@ export default function App() {
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-lg font-bold text-gray-800">進度管理系統</h1>
-            {/* 手機版關閉側邊欄按鈕 */}
             <button className="md:hidden text-gray-500 font-bold text-xl px-2" onClick={() => setIsSidebarOpen(false)}>×</button>
           </div>
           
@@ -392,24 +372,16 @@ export default function App() {
         </div>
       </div>
 
-      {/* ================= 右側主要工作區 ================= */}
       <div className="flex-1 flex flex-col overflow-hidden bg-gray-300">
-        
-        {/* 頂部工具列 */}
         <div className="h-14 bg-white border-b flex items-center justify-between px-2 md:px-4 shadow-sm z-10 w-full overflow-x-auto whitespace-nowrap scrollbar-hide">
           <div className="flex items-center space-x-2 md:space-x-4">
-            {/* 漢堡按鈕 (僅手機顯示) */}
-            <button className="md:hidden p-2 text-gray-600" onClick={() => setIsSidebarOpen(true)}>
-              ☰
-            </button>
-
+            <button className="md:hidden p-2 text-gray-600" onClick={() => setIsSidebarOpen(true)}>☰</button>
             <input type="file" accept="application/pdf" className="hidden" ref={fileInputRef} onChange={handlePdfUpload} />
             
             <div className="flex flex-col relative">
               <button onClick={() => fileInputRef.current.click()} disabled={isUploading || !activeSubcategoryId} className="bg-gray-800 text-white px-3 py-1.5 rounded text-xs md:text-sm disabled:opacity-50">
                 {isUploading ? '雲端同步中...' : '更換雲端圖紙'}
               </button>
-              {/* 上傳進度條 */}
               {isUploading && (
                 <div className="absolute -bottom-1 left-0 h-1 bg-blue-500 transition-all" style={{ width: `${uploadProgress}%` }}></div>
               )}
@@ -431,7 +403,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* PDF 圖紙層 */}
         <div className="flex-1 overflow-auto p-2 md:p-6 relative">
           {!pdfDoc ? (
             <div className="text-gray-500 mt-20 flex flex-col items-center px-4 text-center">
@@ -456,8 +427,6 @@ export default function App() {
         </div>
       </div>
 
-     {/* ================= 彈出視窗群組 ================= */}
-      {/* 1. 標記 Modal */}
       {markerModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col mx-auto my-auto max-h-[90vh]">
@@ -475,7 +444,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 2. 專案 Modal */}
       {projectModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col mx-auto my-auto">
@@ -489,7 +457,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 3. 分類 Modal */}
       {subModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col mx-auto my-auto">
@@ -503,7 +470,6 @@ export default function App() {
         </div>
       )}
 
-{/* 4. 確認刪除 Modal */}
       {confirmModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col mx-auto my-auto">
@@ -515,21 +481,6 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
-
-      {/* 2. 專案/分類 Modal (共用版面邏輯省略，維持原樣) */}
-      {/* 由於空間限制，此處僅提供核心邏輯，Modal UI 與上一版相同，請保留之前寫的 Project/Sub Modal 代碼 */}
-      {projectModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col"><div className="p-4 border-b bg-gray-50"><h3 className="font-bold">新增專案</h3></div><div className="p-4"><input type="text" value={projectModal.name} onChange={e => setProjectModal(prev => ({...prev, name: e.target.value}))} className="w-full border rounded p-2 text-sm outline-none" autoFocus/></div><div className="p-4 bg-gray-50 flex justify-end gap-2 border-t"><button onClick={() => setProjectModal({ isOpen: false, name: '' })} className="px-4 py-2 text-sm bg-white border rounded">取消</button><button onClick={confirmAddProject} disabled={!projectModal.name.trim()} className="px-4 py-2 text-sm text-white bg-blue-600 rounded disabled:opacity-50">建立</button></div></div></div>
-      )}
-      {subModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col"><div className="p-4 border-b bg-gray-50"><h3 className="font-bold">新增區域</h3></div><div className="p-4"><input type="text" value={subModal.name} onChange={e => setSubModal(prev => ({...prev, name: e.target.value}))} className="w-full border rounded p-2 text-sm outline-none" autoFocus/></div><div className="p-4 bg-gray-50 flex justify-end gap-2 border-t"><button onClick={() => setSubModal({ isOpen: false, name: '' })} className="px-4 py-2 text-sm bg-white border rounded">取消</button><button onClick={confirmAddSubcategory} disabled={!subModal.name.trim()} className="px-4 py-2 text-sm text-white bg-indigo-600 rounded disabled:opacity-50">建立</button></div></div></div>
-      )}
-      {confirmModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col"><div className="p-4 border-b bg-red-50"><h3 className="font-bold text-red-600">確認刪除</h3></div><div className="p-4 text-sm">確定要刪除嗎？</div><div className="p-4 bg-gray-50 flex justify-end gap-2 border-t"><button onClick={() => setConfirmModal({ isOpen: false, markerId: null })} className="px-4 py-2 text-sm bg-white border rounded">取消</button><button onClick={confirmDeleteMarker} className="px-4 py-2 text-sm text-white bg-red-600 rounded">刪除</button></div></div></div>
       )}
     </div>
   );
