@@ -456,13 +456,13 @@ export default function App() {
         </div>
       </div>
 
-      {/* ================= 彈出視窗群組 ================= */}
+     {/* ================= 彈出視窗群組 ================= */}
       {/* 1. 標記 Modal */}
       {markerModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col mx-auto my-auto max-h-[90vh]">
             <div className="p-4 border-b bg-gray-50"><h3 className="font-bold">{markerModal.data.type === 'point' ? '📍 新增點標記' : '🔲 新增範圍標記'}</h3></div>
-            <div className="p-4 flex flex-col gap-3">
+            <div className="p-4 flex flex-col gap-3 overflow-y-auto">
               <textarea value={markerModal.text} onChange={e => setMarkerModal(prev => ({...prev, text: e.target.value}))} placeholder="輸入現場備註..." className="w-full h-24 border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"/>
               {markerModal.image && <div className="relative inline-block self-start"><img src={markerModal.image} className="h-20 rounded border object-cover"/><button onClick={() => setMarkerModal(prev => ({...prev, image: null}))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs">✕</button></div>}
               <label className="text-xs bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 flex items-center gap-1 font-medium border w-max">📷 附加相片 <input type="file" accept="image/*" className="hidden" onChange={handleModalImageUpload}/></label>
@@ -474,6 +474,51 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* 2. 專案 Modal */}
+      {projectModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col mx-auto my-auto">
+            <div className="p-4 border-b bg-gray-50"><h3 className="font-bold">新增專案</h3></div>
+            <div className="p-4"><input type="text" value={projectModal.name} onChange={e => setProjectModal(prev => ({...prev, name: e.target.value}))} className="w-full border rounded p-2 text-sm outline-none" autoFocus/></div>
+            <div className="p-4 bg-gray-50 flex justify-end gap-2 border-t">
+              <button onClick={() => setProjectModal({ isOpen: false, name: '' })} className="px-4 py-2 text-sm bg-white border rounded">取消</button>
+              <button onClick={confirmAddProject} disabled={!projectModal.name.trim()} className="px-4 py-2 text-sm text-white bg-blue-600 rounded disabled:opacity-50">建立</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. 分類 Modal */}
+      {subModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col mx-auto my-auto">
+            <div className="p-4 border-b bg-gray-50"><h3 className="font-bold">新增區域</h3></div>
+            <div className="p-4"><input type="text" value={subModal.name} onChange={e => setSubModal(prev => ({...prev, name: e.target.value}))} className="w-full border rounded p-2 text-sm outline-none" autoFocus/></div>
+            <div className="p-4 bg-gray-50 flex justify-end gap-2 border-t">
+              <button onClick={() => setSubModal({ isOpen: false, name: '' })} className="px-4 py-2 text-sm bg-white border rounded">取消</button>
+              <button onClick={confirmAddSubcategory} disabled={!subModal.name.trim()} className="px-4 py-2 text-sm text-white bg-indigo-600 rounded disabled:opacity-50">建立</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. 確認刪除 Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col mx-auto my-auto">
+            <div className="p-4 border-b bg-red-50"><h3 className="font-bold text-red-600">確認刪除</h3></div>
+            <div className="p-4 text-sm">確定要刪除這個標記嗎？此動作無法復原。</div>
+            <div className="p-4 bg-gray-50 flex justify-end gap-2 border-t">
+              <button onClick={() => setConfirmModal({ isOpen: false, markerId: null })} className="px-4 py-2 text-sm bg-white border rounded">取消</button>
+              <button onClick={confirmDeleteMarker} className="px-4 py-2 text-sm text-white bg-red-600 rounded">確認刪除</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
       {/* 2. 專案/分類 Modal (共用版面邏輯省略，維持原樣) */}
       {/* 由於空間限制，此處僅提供核心邏輯，Modal UI 與上一版相同，請保留之前寫的 Project/Sub Modal 代碼 */}
