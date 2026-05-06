@@ -392,7 +392,7 @@ export default function App() {
         </div>
 
         {/* PDF 圖紙與標記層 */}
-        <div className="flex-1 overflow-auto bg-gray-300 flex justify-center p-6 relative">
+        <div className="flex-1 overflow-auto bg-gray-300 p-6 relative">
           {!pdfDoc ? (
             <div className="text-gray-500 mt-20 flex flex-col items-center">
               <svg className="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -400,7 +400,7 @@ export default function App() {
               <p className="text-sm text-gray-400 mt-2">（注意：圖紙僅存於本機瀏覽器，不會消耗雲端空間）</p>
             </div>
           ) : (
-            <div className="relative shadow-xl bg-white inline-block border border-gray-200">
+            <div className="relative shadow-xl bg-white border border-gray-200 w-max m-auto">
               <canvas ref={canvasRef} className="block" />
               <div ref={overlayRef} className={`absolute top-0 left-0 ${tool !== 'view' ? 'cursor-crosshair' : 'cursor-default'}`} onMouseDown={handleOverlayMouseDown} onMouseMove={handleOverlayMouseMove} onMouseUp={handleOverlayMouseUp} onMouseLeave={handleOverlayMouseUp}>
                 
