@@ -503,9 +503,3 @@ export default function App() {
     </div>
   );
 }
-```eof
-
-**最後提醒：**
-為免再出 Error，確保你上到 Vercel 之前：
-1. 已經將 Firebase 嘅 `Rules` 設為 `allow read, write: if true;`
-2. `firebaseConfig` 入面填好晒你自己嘅 Firebase 資料。
