@@ -8,12 +8,14 @@ import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from 'fi
 // 1. Firebase 設定 (請填入你自己的資料)
 // ==========================================
 const firebaseConfig = {
-  //apiKey: "AIzaSyAY5YRBVUXeRvAime0AyLD2IOgO1MRlT8c",
-  //authDomain: "site-progress-a0c06.firebaseapp.com",
-  //projectId: "site-progress-a0c06",
-  //storageBucket: "site-progress-a0c06.firebasestorage.app",
-  //messagingSenderId: "428438475451",
-  //appId: "1:428438475451:web:c3757122cbac3d393c0f9e",
+  apiKey: "AIzaSyAY5YRBVUXeRvAime0AyLD2IOgO1MRlT8c",
+  authDomain: "site-progress-a0c06.firebaseapp.com",
+  databaseURL: "https://site-progress-a0c06-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "site-progress-a0c06",
+  storageBucket: "site-progress-a0c06.firebasestorage.app",
+  messagingSenderId: "428438475451",
+  appId: "1:428438475451:web:c3757122cbac3d393c0f9e",
+  measurementId: "G-MR858X7DSZ"
 };
 
 // 安全初始化
